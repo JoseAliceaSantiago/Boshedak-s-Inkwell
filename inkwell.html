@@ -437,10 +437,33 @@ function balloonPolys(L){
   }
   return out;
 }
-function letterLines(L,measureFor){
-  const tb=textBox(L);const sz=L.size;const m=measureFor(sz);const lines=wrapText(letterText(L),tb.w,m);
-  const lh=sz*1.12,tot=lines.length*lh;return lines.map((t,i)=>({t,w:m(t),x:tb.cx,y:tb.cy-tot/2+i*lh+sz*0.82}));
-}
+function baseBold(L){return L.bold!==false}
+function baseItalic(L){return L.italic!=null?!!L.italic:L.type==='whisper'}
+function parseRich(text){const paras=[];let b=false,i=false,e=false;
+  for(const para of String(text).split('\n')){const words=[];let word=[],run=null;
+    const push=ch=>{const B=b||e,I=i||e;if(!run||run.b!==B||run.i!==I){run={t:'',b:B,i:I};word.push(run)}run.t+=ch};
+    const end=()=>{if(word.length)words.push(word);word=[];run=null};
+    for(let k=0;k<para.length;k++){const ch=para[k];
+      if(ch==='\\'&&k+1<para.length){push(para[++k]);continue}
+      if(ch==='*'&&para[k+1]==='*'){b=!b;k++;run=null;continue}
+      if(ch==='*'){e=!e;run=null;continue}
+      if(ch==='_'){i=!i;run=null;continue}
+      if(/\s/.test(ch)){end();continue}push(ch)}
+    end();paras.push(words)}
+  return paras}
+function letterLayout(L,measure){const tb=textBox(L),sz=L.size,B=baseBold(L),I=baseItalic(L);
+  const W=r=>measure(r.t,B||r.b,I||r.i,sz),sp=measure(' ',B,I,sz),lines=[];
+  for(const words of parseRich(letterText(L))){if(!words.length){lines.push({runs:[],w:0});continue}
+    let line=[],lw=0;for(const wd of words){const ww=wd.reduce((a,r)=>a+W(r),0);
+      if(line.length&&lw+sp+ww>tb.w){lines.push({words:line,w:lw});line=[];lw=0}
+      lw+=(line.length?sp:0)+ww;line.push(wd)}
+    lines.push({words:line,w:lw})}
+  const lh=sz*1.12,tot=lines.length*lh;
+  return lines.map((ln,li)=>{let x=tb.cx-ln.w/2;const y=tb.cy-tot/2+li*lh+sz*0.82,runs=[];
+    (ln.words||[]).forEach((wd,wi)=>{if(wi)x+=sp;for(const r of wd){const w=W(r);runs.push({t:r.t,b:B||r.b,i:I||r.i,x,w});x+=w}});return{y,runs}})}
+function fontCss(b,i,sz,fam){return`${i?'italic ':''}${b?'bold':'normal'} ${sz}px ${fam}`}
+function canvasRunMeasure(fam){return(t,b,i,sz)=>{mctx.font=fontCss(b,i,sz,fam);return mctx.measureText(t).width}}
+function letterLines(L,measureFor){const m=measureFor(L.size);return letterLayout(L,(t)=>m(t)).map(l=>({t:l.runs.map(r=>r.t).join(' '),w:0,x:0,y:l.y}))}
 function canvasMeasure(font){return sz=>{mctx.font=font(sz);return t=>mctx.measureText(t).width}}
 const LOGO_FONTS={impact:"Impact,'Haettenschweiler','Arial Narrow Bold',sans-serif",black:"'Arial Black','Helvetica Neue',Arial,sans-serif",serif:"'Rockwell Extra Bold','Georgia',serif",round:"'Arial Rounded MT Bold','Trebuchet MS',sans-serif",comic:FONTS.comic,custom:"'InkwellCustom',Impact,sans-serif"};
 const LOGO_PRESETS={
@@ -474,9 +497,9 @@ function handAbs(L){const kx=L.w/L.bw,ky=L.h/L.bh,ow=L.ow||1,a=[];for(let i=0;i<
 function handXY(a){const xy=[];for(let i=0;i<a.length;i+=3)xy.push(a[i],a[i+1]);return xy}
 function handCentroid(L){const p=handXY(handAbs(L));let A=0,cx=0,cy=0;for(let i=0,n=p.length;i<n;i+=2){const j=(i+2)%n,f=p[i]*p[j+1]-p[j]*p[i+1];A+=f;cx+=(p[i]+p[j])*f;cy+=(p[i+1]+p[j+1])*f}
   if(Math.abs(A)<1)return{x:L.x+L.w/2,y:L.y+L.h/2};return{x:cx/(3*A),y:cy/(3*A)}}
-function drawLetterText(ctx,L){const fam=FONTS[project.font]||FONTS.comic;const it=L.type==='whisper'?'italic ':'';
-  ctx.fillStyle=L.type==='text'?(L.color||'#000'):'#000';ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.font=`${it}bold ${L.size}px ${fam}`;
-  const lines=letterLines(L,canvasMeasure(sz=>`${it}bold ${sz}px ${fam}`));for(const ln of lines)ctx.fillText(ln.t,ln.x,ln.y);return lines}
+function drawLetterText(ctx,L){const fam=FONTS[project.font]||FONTS.comic;
+  ctx.fillStyle=L.type==='text'?(L.color||'#000'):'#000';ctx.textAlign='left';ctx.textBaseline='alphabetic';
+  const lines=letterLayout(L,canvasRunMeasure(fam));for(const ln of lines)for(const r of ln.runs){ctx.font=fontCss(r.b,r.i,L.size,fam);ctx.fillText(r.t,r.x,ln.y)}return lines}
 function rotOf(L){return(L.rot||0)*Math.PI/180}
 function lcenter(L){return{x:L.x+L.w/2,y:L.y+L.h/2}}
 function rotAbout(c,pt,a){const dx=pt.x-c.x,dy=pt.y-c.y,co=Math.cos(a),si=Math.sin(a);return{x:c.x+dx*co-dy*si,y:c.y+dx*si+dy*co}}
@@ -507,7 +530,7 @@ function drawLetter(ctx,L){
   const c=lcenter(L);ctx.save();ctx.translate(c.x,c.y);ctx.rotate(a);ctx.translate(-c.x,-c.y);drawLetterInner(ctx,localL(L));ctx.restore();
 }
 function drawLetterInner(ctx,L){
-  if(L.type==='text'){const fam=FONTS[project.font]||FONTS.comic;mctx.font=`bold ${L.size}px ${fam}`;const n=wrapText(letterText(L),L.w,t=>mctx.measureText(t).width).length;L.h=R2(n*L.size*1.12+L.size*0.4);ctx.save();drawLetterText(ctx,L);ctx.restore();return}
+  if(L.type==='text'){const fam=FONTS[project.font]||FONTS.comic;const n=letterLayout({...L,h:0},canvasRunMeasure(fam)).length;L.h=R2(n*L.size*1.12+L.size*0.4);ctx.save();drawLetterText(ctx,L);ctx.restore();return}
   if(L.type==='hand'){const a=handAbs(L);ctx.save();ctx.beginPath();pathPolys(ctx,[handXY(a)]);ctx.fillStyle=L.bg||'#fff';ctx.fill('nonzero');
     ctx.beginPath();pathPolys(ctx,linePolys(a));ctx.fillStyle='#000';ctx.fill('nonzero');drawLetterText(ctx,L);ctx.restore();return}
   if(L.type==='sfx'){
@@ -522,9 +545,7 @@ function drawLetterInner(ctx,L){
   if(L.type==='whisper'){ctx.setLineDash([5,3])}
   ctx.lineWidth=bw*2;ctx.strokeStyle='#000';ctx.stroke();ctx.setLineDash([]);
   ctx.fillStyle=L.type==='caption'?(L.bg||'#fff3b0'):'#fff';ctx.fill('nonzero');
-  const fam=FONTS[project.font]||FONTS.comic;const it=L.type==='whisper'?'italic ':'';
-  ctx.fillStyle='#000';ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.font=`${it}bold ${L.size}px ${fam}`;
-  for(const ln of letterLines(L,canvasMeasure(sz=>`${it}bold ${sz}px ${fam}`)))ctx.fillText(ln.t,ln.x,ln.y);
+  drawLetterText(ctx,L);
   ctx.restore();
 }
 /* ---- full page render (thumbs / PNG) ---- */
@@ -1267,6 +1288,8 @@ function renderSide(){
   if(tool==='ref')h+=refSideHTML();
   if(tool==='select'&&selLetter){const L=selLetter;
     h+=`<section><h3>Selected lettering</h3><textarea id="lText" rows="3">${esc(L.text)}</textarea>`;
+    if(!['sfx','logo'].includes(L.type))h+=`<div class="row"><label>Text style</label><button class="btn sm ${baseBold(L)?'on':''}" id="lBold" title="Bold (whole balloon)"><b>B</b> Bold</button><button class="btn sm ${baseItalic(L)?'on':''}" id="lItal" title="Italic (whole balloon)"><i>I</i> Italic</button></div>
+      <div class="hint">For single words: select them and press <kbd>Ctrl+B</kbd> (bold) or <kbd>Ctrl+I</kbd> (italic), or type <b>**bold**</b>, <b>_italic_</b> or <b>*emphasis*</b> (bold italic, the classic comic way to stress a word). Type <b>\\*</b> for a real asterisk.</div>`;
     if(!['sfx','caption','hand','text','logo'].includes(L.type))h+=`<div class="row"><label>Style</label><select id="lType">${BSTYLES.map(([v,n])=>`<option value="${v}" ${L.type===v?'selected':''}>${n}</option>`).join('')}</select></div>`;
     if(LINKABLE.has(L.type)){const lk=L.link&&cur().letters.find(x=>x.id===L.link);h+=`<h3 style="margin-top:10px">Connected balloons</h3><div class="btnrow" style="margin-top:2px"><button class="btn sm primary" id="lChild">＋ Connected balloon</button><button class="btn sm ${linkArm===L.id?'on':''}" id="lLinkTo">${linkArm===L.id?'Click a balloon…':'Connect to…'}</button>${lk?'<button class="btn sm" id="lUnlink">Disconnect</button>':''}</div>
       ${lk?slider('lNeck','Neck width',L.neck||0.17,0.06,0.4,0.01):''}<div class="hint">Connected balloons share one outline, joined by a neck, for one speaker talking in beats. <b>＋ Connected balloon</b> adds the next one with the next line of dialogue. <b>Connect to…</b> joins this balloon to another one you click.</div>`}
@@ -1288,7 +1311,7 @@ function renderSide(){
       <div class="btnrow"><button class="btn sm" id="lFront">Bring to front</button><button class="btn sm" id="lDup">Duplicate</button><button class="btn sm" id="lDel">Delete</button></div></section>`;
   }
   if(LETTER_TOOLS.includes(tool)||tool==='select'||tool==='hballoon'){const dl=dialogueLines(page),di=page.dIdx||0;
-    h+=`<section><h3>Dialogue for this page</h3><p class="desc">Write the page's dialogue here, one balloon per line. Each balloon or text you place takes the next line automatically.</p>
+    h+=`<section><h3>Dialogue for this page</h3><p class="desc">Write the page's dialogue here, one balloon per line. Each balloon or text you place takes the next line automatically. Emphasis markup like <b>*this*</b> carries over.</p>
     <textarea id="oDlg" rows="6" placeholder="MAYA: We have to move. Now!&#10;REX: Right behind you!&#10;Narration goes on its own line too.">${esc(page.dialogue||'')}</textarea>
     <div class="hint">${dl.length?(di<dl.length?`Next (${di+1}/${dl.length}): <b>${esc(stripSpeaker(dl[di]))}</b>`:`All ${dl.length} lines placed ✓`):'No lines yet. Placeholder text will be used.'}</div>
     <label class="chk"><input type="checkbox" id="oStrip" ${settings.stripSpeaker?'checked':''}> Remove "NAME:" speaker labels when placing</label>
@@ -1363,6 +1386,12 @@ function bindSide(){
   const L=selLetter;
   if(L&&$('#lText')){const up=()=>{renderFrame();drawOverlay();changed(false)};let pushed=false;const once=()=>{if(!pushed){pushUndo();pushed=true}};
     $('#lText').oninput=e=>{once();L.text=e.target.value;up()};
+    $('#lText').onkeydown=e=>{if(!(e.ctrlKey||e.metaKey))return;const k=e.key.toLowerCase(),mk=k==='b'?'**':k==='i'?'_':k==='e'?'*':null;if(!mk)return;e.preventDefault();
+      const ta=e.target,a=ta.selectionStart,z=ta.selectionEnd,v=ta.value;let nv,na,nz;
+      if(v.slice(a-mk.length,a)===mk&&v.slice(z,z+mk.length)===mk){nv=v.slice(0,a-mk.length)+v.slice(a,z)+v.slice(z+mk.length);na=a-mk.length;nz=z-mk.length}
+      else{nv=v.slice(0,a)+mk+v.slice(a,z)+mk+v.slice(z);na=a+mk.length;nz=z+mk.length}
+      ta.value=nv;ta.setSelectionRange(na,nz);once();L.text=nv;up()};
+    {const lb2=$('#lBold');if(lb2)lb2.onclick=()=>{pushUndo();L.bold=!baseBold(L);up();renderSide()};const li2=$('#lItal');if(li2)li2.onclick=()=>{pushUndo();L.italic=!baseItalic(L);up();renderSide()}}
     const lt=$('#lType');if(lt)lt.onchange=()=>{pushUndo();L.type=lt.value;up()};
     bindRange('lSize',v=>{once();L.size=v;up()},'pt');bindRange('lRot',v=>{once();L.rot=v;up()},'°');
     const lc=$('#lColor');if(lc)lc.oninput=()=>{once();L.color=lc.value;up()};
@@ -1670,20 +1699,24 @@ const rg=h=>hexRGB(h).map(N).join(' ')+' rg';
 const RG=h=>hexRGB(h).map(N).join(' ')+' RG';
 function pdfPath(polys){const a=[];for(const p of polys){a.push(N(p[0])+' '+N(p[1])+' m');for(let i=2;i<p.length;i+=2)a.push(N(p[i])+' '+N(p[i+1])+' l');a.push('h')}return a.join('\n')+'\n'}
 function latin1(s){const u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i)&255;return u}
+const pdfRunMeasure=(t,b,i,sz)=>{mctx.font=fontCss(b,i,sz,'Helvetica,Arial,sans-serif');return mctx.measureText(t).width};
+function pdfFace(b,i){return b?(i?'F4':'F1'):(i?'F3':'F2')}
+function pdfText(L,color){let o='';for(const ln of letterLayout(L,pdfRunMeasure))for(const r of ln.runs)o+=`BT /${pdfFace(r.b,r.i)} ${N(L.size)} Tf ${rg(color||'#000000')} 1 0 0 -1 ${N(r.x)} ${N(ln.y)} Tm ${pdfStr(r.t)} Tj ET\n`;return o}
 function pdfRot(m){const ra=rotOf(m);if(!ra)return'';const cc=lcenter(m),co=Math.cos(ra),si=Math.sin(ra);return`q 1 0 0 1 ${N(cc.x)} ${N(cc.y)} cm ${N(co)} ${N(si)} ${N(-si)} ${N(co)} 0 0 cm 1 0 0 1 ${N(-cc.x)} ${N(-cc.y)} cm\n`}
 function pdfGroup(mem,G){const path=pdfPath(groupPolys(mem,G.byId));let o=`q 0 0 0 RG ${N(project.lineW*2)} w 1 j ${mem[0].type==='whisper'?'[5 3] 0 d':''}\n${path}S\n[] 0 d 1 1 1 rg\n${path}f Q\n`;
-  for(const m of mem){const r=pdfRot(m);o+=r;for(const ln of letterLines(localL(m),pdfMeasure))o+=`BT /F1 ${N(m.size)} Tf 0 0 0 rg 1 0 0 -1 ${N(ln.x-ln.w/2)} ${N(ln.y)} Tm ${pdfStr(ln.t)} Tj ET\n`;if(r)o+='Q\n'}return o}
+  for(const m of mem){const r=pdfRot(m);o+=r;o+=pdfText(localL(m));if(r)o+='Q\n'}return o}
 function pdfLetter(L){const c=[];
   if(L.type==='hand'){const a=handAbs(L);c.push(`${rg(L.bg||'#ffffff')}\n${pdfPath([handXY(a)])}f\n0 0 0 rg\n${pdfPath(linePolys(a))}f\n`)}
-  if(L.type==='hand'||L.type==='text'){for(const ln of letterLines(L,pdfMeasure))c.push(`BT /F1 ${N(L.size)} Tf ${rg(L.type==='text'?(L.color||'#000000'):'#000000')} 1 0 0 -1 ${N(ln.x-ln.w/2)} ${N(ln.y)} Tm ${pdfStr(ln.t)} Tj ET\n`);return c.join('')}
+  if(L.type==='hand'||L.type==='text'){c.push(pdfText(L,L.type==='text'?(L.color||'#000000'):'#000000'));return c.join('')}
   const path=pdfPath(balloonPolys(L));
   c.push(`q 0 0 0 RG ${N(project.lineW*2)} w 1 j ${L.type==='whisper'?'[5 3] 0 d':''}\n${path}S\n[] 0 d ${rg(L.type==='caption'?(L.bg||'#fff3b0'):'#ffffff')}\n${path}f Q\n`);
-  for(const ln of letterLines(L,pdfMeasure))c.push(`BT /F1 ${N(L.size)} Tf 0 0 0 rg 1 0 0 -1 ${N(ln.x-ln.w/2)} ${N(ln.y)} Tm ${pdfStr(ln.t)} Tj ET\n`);
+  c.push(pdfText(L));
   return c.join('')}
 async function buildPDF(pages,o,onProg){
   const objs=[];const alloc=()=>{objs.push(null);return objs.length};const set=(id,v)=>objs[id-1]=typeof v==='string'?latin1(v):v;
-  const catId=alloc(),pagesId=alloc(),fontId=alloc(),resId=alloc();
+  const catId=alloc(),pagesId=alloc(),fontId=alloc(),resId=alloc(),f2=alloc(),f3=alloc(),f4=alloc();
   set(fontId,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+  set(f2,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');set(f3,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>');set(f4,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-BoldOblique /Encoding /WinAnsiEncoding >>');
   const pats={},gs={};const f=fmt(),{W,H}=pageSize();const pageIds=[];
   const patName=t=>{const k=t.lpi+'_'+t.cov;if(pats[k])return pats[k].n;const id=alloc(),sp=72/t.lpi,r=sp*Math.sqrt(t.cov/Math.PI),c=sp/2,K=0.5523*r;
     const body=`0 0 0 rg ${N(c+r)} ${N(c)} m ${N(c+r)} ${N(c+K)} ${N(c+K)} ${N(c+r)} ${N(c)} ${N(c+r)} c ${N(c-K)} ${N(c+r)} ${N(c-r)} ${N(c+K)} ${N(c-r)} ${N(c)} c ${N(c-r)} ${N(c-K)} ${N(c-K)} ${N(c-r)} ${N(c)} ${N(c-r)} c ${N(c+K)} ${N(c-r)} ${N(c+r)} ${N(c-K)} ${N(c+r)} ${N(c)} c f`;
@@ -1721,20 +1754,13 @@ async function buildPDF(pages,o,onProg){
       const ra=rotOf(L);if(ra){const cc=lcenter(L),co=Math.cos(ra),si=Math.sin(ra);c.push(`q 1 0 0 1 ${N(cc.x)} ${N(cc.y)} cm ${N(co)} ${N(si)} ${N(-si)} ${N(co)} 0 0 cm 1 0 0 1 ${N(-cc.x)} ${N(-cc.y)} cm\n`)}
       c.push(pdfLetter(localL(L)));if(ra)c.push('Q\n');
     }
-    if(false)for(const L of[]){
-      if(L.type==='hand'){const a=handAbs(L);c.push(`${rg(L.bg||'#ffffff')}\n${pdfPath([handXY(a)])}f\n0 0 0 rg\n${pdfPath(linePolys(a))}f\n`)}
-      if(L.type==='hand'||L.type==='text'){for(const ln of letterLines(L,pdfMeasure))c.push(`BT /F1 ${N(L.size)} Tf ${rg(L.type==='text'?(L.color||'#000000'):'#000000')} 1 0 0 -1 ${N(ln.x-ln.w/2)} ${N(ln.y)} Tm ${pdfStr(ln.t)} Tj ET\n`);continue}
-      const polys=balloonPolys(L),path=pdfPath(polys);
-      c.push(`q 0 0 0 RG ${N(project.lineW*2)} w 1 j ${L.type==='whisper'?'[5 3] 0 d':''}\n${path}S\n[] 0 d ${rg(L.type==='caption'?(L.bg||'#fff3b0'):'#ffffff')}\n${path}f Q\n`);
-      for(const ln of letterLines(L,pdfMeasure))c.push(`BT /F1 ${N(L.size)} Tf 0 0 0 rg 1 0 0 -1 ${N(ln.x-ln.w/2)} ${N(ln.y)} Tm ${pdfStr(ln.t)} Tj ET\n`);
-    }
     c.push('Q\n');
     const data=await deflateBytes(latin1(c.join('')));const sid=alloc();set(sid,concatBytes([latin1(`<< /Length ${data.length} /Filter /FlateDecode >>\nstream\n`),data,latin1('\nendstream')]));
     const pid=alloc();set(pid,`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox ${box} /BleedBox ${box} /TrimBox ${trim} /Resources ${resId} 0 R /Contents ${sid} 0 R >>`);pageIds.push(pid);
     onProg&&onProg((pi+1)/pages.length);await tick();
   }
   const pd=Object.values(pats).map(p=>`/${p.n} ${p.id} 0 R`).join(' '),gd=Object.values(gs).map(g=>`/${g.n} ${g.id} 0 R`).join(' ');
-  set(resId,`<< /Font << /F1 ${fontId} 0 R >> /Pattern << ${pd} >> /ExtGState << ${gd} >> /XObject << ${Object.entries(xobj).map(([k,v])=>`/${k} ${v} 0 R`).join(' ')} >> /ProcSet [/PDF /Text /ImageC /ImageB] >>`);
+  set(resId,`<< /Font << /F1 ${fontId} 0 R /F2 ${f2} 0 R /F3 ${f3} 0 R /F4 ${f4} 0 R >> /Pattern << ${pd} >> /ExtGState << ${gd} >> /XObject << ${Object.entries(xobj).map(([k,v])=>`/${k} ${v} 0 R`).join(' ')} >> /ProcSet [/PDF /Text /ImageC /ImageB] >>`);
   set(pagesId,`<< /Type /Pages /Kids [${pageIds.map(i=>i+' 0 R').join(' ')}] /Count ${pageIds.length} >>`);
   set(catId,`<< /Type /Catalog /Pages ${pagesId} 0 R ${project.rtl?'/ViewerPreferences << /Direction /R2L >>':''} >>`);
   const parts=[latin1('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n')];let off=parts[0].length;const offs=[];
