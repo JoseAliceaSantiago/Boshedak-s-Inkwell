@@ -118,6 +118,14 @@ kbd{background:var(--panel2);border:1px solid var(--line);border-bottom-width:2p
 .fmtcards label:has(input:checked){border-color:var(--yellow);box-shadow:inset 0 0 0 1px var(--yellow)}
 .fmtcards input{display:none}
 .fmtcards .shape{background:#fff;border:1px solid #000;margin:4px auto 6px}
+header{min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}
+header>*{flex-shrink:0}header .spacer{flex-shrink:1;min-width:4px}
+#bExport{position:sticky;right:0;z-index:2}
+@media(max-width:1520px){.fmtTag{display:none}}
+@media(max-width:1400px){.logo small{display:none}#title{width:150px}header{gap:6px}header .btn{padding:6px 8px}}
+@media(max-width:1180px){.logo{font-size:18px}#title{width:120px}header .btn{padding:5px 7px;font-size:12px}.zoomBox #zLab{width:36px}}
+.xwarn{background:#3a2a10;border:1px solid #f6c514;color:#ffe9a8;border-radius:8px;padding:8px 10px;margin-top:10px;font-size:12px;display:none}
+.xwarn.show{display:block}
 </style>
 </head>
 <body>
@@ -140,7 +148,7 @@ kbd{background:var(--panel2);border:1px solid var(--line);border-bottom-width:2p
     <button class="btn" id="bNew">New</button>
     <button class="btn" id="bOpen">Open</button>
     <button class="btn" id="bSave" title="Save project file (Ctrl+S)">Save</button>
-    <button class="btn primary" id="bExport">⬇ Export</button>
+    <button class="btn primary" id="bExport" title="Export PDF / PNG (Ctrl+Shift+E)">⬇ Export</button>
     <input type="file" id="fileIn" accept=".json,.inkwell,application/json" hidden><input type="file" id="refIn" accept="image/*" hidden><input type="file" id="fontIn" accept=".ttf,.otf,.woff,.woff2" hidden>
   </header>
   <nav id="tools"></nav>
@@ -175,6 +183,7 @@ kbd{background:var(--panel2);border:1px solid var(--line);border-bottom-width:2p
     <label class="chk"><input type="checkbox" id="xBleed" checked> Include bleed</label>
   </div>
   <div class="btnrow"><button class="btn sm" data-preset="print">Preset: Print-ready</button><button class="btn sm" data-preset="blue">Preset: Bluelines (pencils only, to ink on paper)</button><button class="btn sm" data-preset="web">Preset: Web</button></div>
+  <div class="xwarn" id="xWarn"></div>
   <div class="prog" id="xProg"><i></i></div>
   <div class="mfoot"><span class="info" id="xInfo"></span><button class="btn" data-close>Cancel</button><button class="btn primary" id="xGo">Export</button></div>
 </div></div>
@@ -1216,6 +1225,7 @@ document.addEventListener('keydown',e=>{
   const tag=(e.target.tagName||'').toLowerCase();const typing=tag==='textarea'||(tag==='input'&&e.target.type!=='range'&&e.target.type!=='checkbox');
   const mod=e.ctrlKey||e.metaKey;
   if(mod&&e.key.toLowerCase()==='s'){e.preventDefault();saveProject();return}
+  if(mod&&e.shiftKey&&e.key.toLowerCase()==='e'){e.preventDefault();$('#bExport').click();return}
   if(typing){if(e.key==='Escape')e.target.blur();return}
   if(e.key==='Escape'){selLetter=null;selPanel=-1;selGuide=null;renderSide();drawOverlay();return}
   if(mod&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?redo():undo();return}
@@ -1773,7 +1783,10 @@ async function buildPDF(pages,o,onProg){
 
 /* ================= export UI ================= */
 let exporting=false;
-function exportInfo(){const fmtSel=document.querySelector('input[name=xf]:checked').value;const dpi=+$('#xDpi').value;const f=fmt(),{W,H}=pageSize();const b=$('#xBleed').checked;
+function sketchWarn(){const all=$('#xPages').value==='all',pages=all?project.pages:[cur()];let sk=0,ink=0;
+  for(const p of pages)for(const L of p.layers){if(!L.visible)continue;if(L.sketch)sk+=L.strokes.length;else ink+=L.strokes.length}
+  const w=$('#xWarn');if(!$('#xPen').checked&&sk>0&&sk>ink*2){w.innerHTML=`<b>Heads up:</b> most of your drawing (${sk} strokes) is on <b>sketch layers</b>, and sketch layers are left out of exports. With this setting the file will look almost empty. Tick <b>Sketch layers</b> above to include your pencils, or ink over them first.`;w.classList.add('show')}else w.classList.remove('show')}
+function exportInfo(){sketchWarn();const fmtSel=document.querySelector('input[name=xf]:checked').value;const dpi=+$('#xDpi').value;const f=fmt(),{W,H}=pageSize();const b=$('#xBleed').checked;
   const w=b?W:f.w,h=b?H:f.h;$('#xDpi').disabled=fmtSel==='pdf';
   if(fmtSel==='webtoon'){const all=$('#xPages').value==='all',n=all?project.pages.length:1,tot=Math.round(H*n*800/W);$('#xDpi').disabled=true;$('#xInfo').textContent=`800 × ${tot} px scroll → ${Math.ceil(tot/1280)} slices${Math.ceil(tot/1280)>100?' (over Webtoon\'s 100-image limit!)':''}`;return}
   $('#xInfo').textContent=fmtSel==='pdf'?`Vector · ${(w/72).toFixed(3)}×${(h/72).toFixed(3)} in · no fixed resolution`:`${Math.round(w*dpi/72)}×${Math.round(h*dpi/72)} px per page at ${dpi} DPI`}
