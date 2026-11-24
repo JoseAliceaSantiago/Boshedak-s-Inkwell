@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Scriptwell — Comic Script Writer</title>
+<style>
+:root{--bg:#f4f2ee;--paper:#fff;--ink:#1b1b1b;--mute:#8a8780;--line:#e6e2da;--accent:#b5121b;--warn:#c25b00;--soft:#faf9f6}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+.bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:8px 18px;background:rgba(244,242,238,.94);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+.brand{font:700 13px/1 "Courier New",Courier,monospace;letter-spacing:2px;color:var(--mute)}
+#ttl{border:none;background:transparent;font:700 16px/1.2 "Courier New",Courier,monospace;width:260px;padding:4px 6px;border-radius:4px}
+#ttl:focus{outline:1px solid var(--line);background:#fff}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#fff}
+.seg button{border:none;background:none;padding:5px 11px;cursor:pointer;color:var(--mute);font-size:12.5px}
+.seg button.on{background:var(--ink);color:#fff}
+.sp{flex:1}
+.lnk{border:none;background:none;cursor:pointer;color:var(--mute);padding:5px 8px;border-radius:5px;font-size:12.5px}
+.lnk:hover{background:#fff;color:var(--ink)}
+.menu{position:relative}
+.menu .dd{display:none;position:absolute;right:0;top:110%;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.08);min-width:250px;padding:6px;z-index:30}
+.menu.open .dd{display:block}
+.dd button{display:block;width:100%;text-align:left;border:none;background:none;padding:7px 10px;border-radius:5px;cursor:pointer}
+.dd button:hover{background:var(--soft)}
+.dd small{display:block;color:var(--mute);font-size:11.5px}
+.wrap{display:grid;grid-template-columns:200px 1fr;gap:0;max-width:1240px;margin:0 auto}
+nav{position:sticky;top:52px;align-self:start;height:calc(100vh - 52px);overflow:auto;padding:22px 10px 40px 18px;font-size:13px}
+nav .h{font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mute);margin:16px 0 6px}
+nav a{display:flex;justify-content:space-between;gap:6px;color:var(--ink);text-decoration:none;padding:4px 8px;border-radius:5px;cursor:pointer}
+nav a:hover{background:#fff}
+nav a.on{background:#fff;box-shadow:0 0 0 1px var(--line)}
+nav a .c{color:var(--mute);font-size:11px;white-space:nowrap}
+nav a .w{color:var(--warn)}
+main{padding:24px 24px 120px}
+.paper{background:var(--paper);max-width:820px;margin:0 auto;box-shadow:0 1px 2px rgba(0,0,0,.06),0 8px 30px rgba(0,0,0,.05);padding:64px 72px 80px;min-height:80vh}
+.mono,.paper textarea,.paper input.mono{font-family:"Courier Prime","Courier New",Courier,monospace}
+.paper textarea,.paper input,.paper select{border:none;background:transparent;resize:none;width:100%;padding:2px 4px;border-radius:3px;line-height:1.5}
+.paper textarea:focus,.paper input:focus,.paper select:focus{outline:none;background:var(--soft);box-shadow:inset 0 0 0 1px var(--line)}
+.paper textarea::placeholder,.paper input::placeholder{color:#c2beb6}
+.pg{padding-top:26px;margin-top:26px;border-top:1px dashed var(--line)}
+.pg:first-of-type{border-top:none;margin-top:0;padding-top:0}
+.pghead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.pgnum{font:700 17px "Courier New",monospace;letter-spacing:1px;text-decoration:underline;text-underline-offset:4px}
+.par{font:12px "Courier New",monospace;color:var(--mute)}
+.pghead .setting{flex:1;min-width:200px;font:13px "Courier New",monospace;text-transform:uppercase}
+.tools{display:flex;gap:2px;opacity:.25;transition:opacity .15s}
+.pg:hover>.pghead .tools,.pn:hover>.pnhead .tools,.tools:focus-within{opacity:1}
+.tools button,.mini{border:none;background:none;color:var(--mute);cursor:pointer;padding:2px 6px;border-radius:4px;font-size:12px}
+.tools button:hover,.mini:hover{background:var(--soft);color:var(--ink)}
+.pg{position:relative}.lay{position:absolute;right:-60px;top:30px}.pg:first-of-type .lay{top:4px}
+.lay svg{display:block}
+.plotlbl{font:700 12px "Courier New",monospace;letter-spacing:1px;color:var(--mute);margin:12px 0 2px}
+textarea.plot{font-size:14px;min-height:60px;background:#fdfcf9;border-left:3px solid #ece6d8 !important;padding-left:10px}
+.pn{margin:18px 0 6px;clear:none}
+.pnhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pnlab{font:700 14px "Courier New",monospace;letter-spacing:.5px;white-space:nowrap}
+.pnhead select{width:auto;font-size:12px;color:var(--mute);padding:1px 2px}
+.desc{font-size:14px}
+.bl{display:grid;grid-template-columns:28px 150px 1fr 34px 18px;gap:4px;align-items:start;margin:3px 0 3px 36px}
+.bl .bn{font:12px "Courier New",monospace;color:var(--mute);padding-top:4px;text-align:right}
+.bl .who{font:700 14px "Courier New",monospace;text-transform:uppercase}
+.bl .who select{font-size:11px;color:var(--mute)}
+.whobox{display:flex;flex-direction:column}
+.whobox select{font:11px "Courier New",monospace;color:var(--mute);width:auto;padding:0 2px}
+.bl .lab{font:700 14px "Courier New",monospace;padding-top:2px;color:#444}
+.bl .wc{font-size:11px;color:#bbb5aa;padding-top:5px;text-align:right}
+.bl .wc.hot{color:var(--warn);font-weight:700}
+.bl .x{opacity:0}.bl:hover .x{opacity:1}
+.t-note textarea{font-style:italic;color:#666}
+.t-sfx textarea{font-weight:700;letter-spacing:.5px}
+.adds{margin:4px 0 0 64px;display:flex;gap:4px;opacity:.0;transition:opacity .15s}
+.pn:hover .adds,.adds:focus-within{opacity:1}
+.addpn{margin:14px 0 0;display:flex;gap:6px}
+.warns{margin:2px 0 0 64px;font-size:12px;color:var(--warn)}
+.warns div::before{content:"✎ ";color:#d9a46a}
+.pgwarn{font-size:12px;color:var(--warn);margin-top:6px}
+.hint{color:var(--mute);font-size:12.5px}
+.titlepage h1{font:700 30px "Courier New",monospace;text-align:center;margin:40px 0 6px;letter-spacing:1px}
+.tp-row{display:grid;grid-template-columns:150px 1fr;gap:10px;margin:6px 0;align-items:start}
+.tp-row label{font:12px "Courier New",monospace;color:var(--mute);text-transform:uppercase;letter-spacing:1px;padding-top:4px}
+.tp-row input,.tp-row textarea{border-bottom:1px solid var(--line) !important;border-radius:0}
+.card{border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin:12px 0;position:relative;background:#fff}
+.card .nm{font:700 17px "Courier New",monospace;text-transform:uppercase}
+.card .meta{font-size:12px;color:var(--mute)}
+.card .del{position:absolute;right:10px;top:8px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:middle;margin-right:6px}
+.btn{border:1px solid var(--line);background:#fff;border-radius:6px;padding:6px 12px;cursor:pointer}
+.btn:hover{border-color:#cfc9bd}
+.btn.dark{background:var(--ink);color:#fff;border-color:var(--ink)}
+.guide h2{font:700 18px "Courier New",monospace;margin:28px 0 8px}
+.guide p,.guide li{font-size:14px;line-height:1.65}
+.guide code{background:var(--soft);padding:0 4px;border-radius:3px}
+/* preview / print */
+.pv{font-family:"Courier Prime","Courier New",Courier,monospace;font-size:14px;line-height:1.55}
+.pv .pp{margin-top:34px}
+.pv .ph{font-weight:700;text-decoration:underline;letter-spacing:1px}
+.pv .pl{font-weight:700;margin-top:16px}
+.pv .pd{margin:2px 0 6px}
+.pv .pb{margin:2px 0 2px 2.6em;text-indent:-2.6em}
+.pv .pb .who{font-weight:700}
+.pv .plotp{white-space:pre-wrap}
+.pv .tp{text-align:center;margin-bottom:40px}
+.pv .tp h1{font-size:26px;margin:0}
+.pv .meta{color:#555}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:8px 16px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:50}
+.toast.show{opacity:.95}
+#printArea{display:none}
+@media print{
+  body{background:#fff}.bar,nav,main,.toast{display:none !important}
+  #printArea{display:block}
+  #printArea .pp{break-inside:auto}
+  #printArea .pagebreak{break-before:page}
+  @page{margin:0.9in 1in}
+}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}nav{display:none}.paper{padding:32px 22px}.bl{grid-template-columns:22px 110px 1fr 30px 16px;margin-left:8px}}
+</style>
+</head>
+<body>
+<div class="bar">
+  <span class="brand">SCRIPTWELL</span>
+  <input id="ttl" title="Project title">
+  <div class="seg" id="modeSeg" title="Writing method"><button data-mode="full">Full Script</button><button data-mode="marvel">Marvel Method</button></div>
+  <div class="seg" id="viewSeg"><button data-v="write">Write</button><button data-v="read">Read</button></div>
+  <span class="sp"></span>
+  <button class="lnk" id="chkBtn" title="Show or hide the editor's margin notes">✎ Checks: on</button>
+  <button class="lnk" id="undoBtn" title="Undo (Ctrl+Z)">↶ Undo</button>
+  <button class="lnk" id="newBtn">New</button>
+  <button class="lnk" id="openBtn">Open</button>
+  <button class="lnk" id="saveBtn" title="Save project file (Ctrl+S)">Save</button>
+  <div class="menu" id="expMenu"><button class="btn dark" id="expBtn">Export ▾</button>
+    <div class="dd">
+      <button data-exp="print">Print / Save as PDF<small>Industry-style script pages, ready to send.</small></button>
+      <button data-exp="txt">Plain text (.txt)<small>Universal format any editor or artist can open.</small></button>
+      <button data-exp="plot">Marvel plot for the artist (.txt)<small>The page-by-page plot only, with no dialogue.</small></button>
+      <button data-exp="inkwell">Dialogue for Inkwell (.txt)<small>Each page's lines as NAME: text, ready to paste into Inkwell's Dialogue box.</small></button>
+    </div></div>
+  <input type="file" id="fileIn" accept=".json,application/json" hidden>
+</div>
+<div class="wrap"><nav id="nav"></nav><main id="main"></main></div>
+<div id="printArea"></div>
+<div class="toast" id="toast"></div>
+<datalist id="castList"></datalist><datalist id="locList"></datalist>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const uid=()=>Math.random().toString(36).slice(2,10);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),2200)}
+const NUMW=['ZERO','ONE','TWO','THREE','FOUR','FIVE','SIX','SEVEN','EIGHT','NINE','TEN','ELEVEN','TWELVE','THIRTEEN','FOURTEEN','FIFTEEN','SIXTEEN','SEVENTEEN','EIGHTEEN','NINETEEN','TWENTY'];
+const TENS=['','','TWENTY','THIRTY','FORTY','FIFTY','SIXTY','SEVENTY','EIGHTY','NINETY'];
+function numWord(n){if(n<=20)return NUMW[n];if(n<100)return TENS[Math.floor(n/10)]+(n%10?'-'+NUMW[n%10]:'');return String(n)}
+const SHOTS=['','Establishing','Wide','Medium','Close-up','Extreme close-up','Over the shoulder','Bird\'s-eye','Worm\'s-eye','POV','Insert','Silhouette','Two-shot'];
+const SIZES=['','Full-width tier','Half page','Large','Medium','Small','Inset','Splash (full page)','Double-page spread'];
+const MODS=['','OFF','CONT\'D','WHISPER','THOUGHT','BURST','ELECTRIC','RADIO','WEAK','TAILLESS'];
+function ask(m){try{return window.confirm(m)}catch(e){return true}}
+const BTYPES={dialogue:'Dialogue',caption:'Caption',sfx:'SFX',note:'Note'};
+
+/* ---------------- model ---------------- */
+let P, view='script', vmode='write', checks=true;
+const undoStack=[];
+function blank(){return{v:1,title:'Untitled Comic',issue:'1',mode:'full',writer:'',artist:'',inker:'',colorist:'',letterer:'',editor:'',draft:'1',date:new Date().toISOString().slice(0,10),logline:'',synopsis:'',
+  characters:[],locations:[],pages:[newPage()]}}
+function newPage(){return{id:uid(),setting:'',plot:'',splash:false,notes:'',panels:[newPanel()]}}
+function newPanel(){return{id:uid(),shot:'',size:'',desc:'',blocks:[]}}
+function newBlock(type,who){return{id:uid(),type,who:who||'',mod:'',text:''}}
+function sample(){const p=blank();p.title='Night Runners';p.writer='Your Name';p.artist='Artist Name';
+  p.logline='Two couriers race across a blacked-out city to deliver a package that someone wants badly enough to burn the city down.';
+  p.characters=[{id:uid(),name:'MAYA',role:'Lead',look:'Early twenties, cropped hair, oversized courier jacket covered in patches.',voice:'Short sentences. Jokes when she\'s scared.',color:'#b5121b'},
+    {id:uid(),name:'REX',role:'Partner',look:'Tall, older, cybernetic left hand, always in a long coat.',voice:'Formal, careful, never swears.',color:'#2c6fd6'}];
+  p.locations=[{id:uid(),name:'ROOFTOPS, EAST DISTRICT',desc:'Water towers, laundry lines, a neon sign that has half its letters burned out.'}];
+  const pg=p.pages[0];pg.setting='ROOFTOPS, EAST DISTRICT. NIGHT.';
+  pg.panels=[{id:uid(),shot:'Establishing',size:'Full-width tier',desc:'Wide shot of the city in total blackout. Only the moon and a few fires light the skyline. In the foreground, MAYA crouches on a ledge, the package strapped to her back.',blocks:[
+      {id:uid(),type:'caption',who:'',mod:'',text:'The night the lights went out, everyone in the city wanted the same box.'}]},
+    {id:uid(),shot:'Medium',size:'Half page',desc:'REX lands beside her, coat flaring. He checks a cracked wrist display.',blocks:[
+      {id:uid(),type:'dialogue',who:'REX',mod:'',text:'They\'re two blocks behind us. Maybe less.'},
+      {id:uid(),type:'dialogue',who:'MAYA',mod:'',text:'Then we take the *long* way.'}]},
+    {id:uid(),shot:'Close-up',size:'Half page',desc:'Maya grins and steps off the ledge into empty air.',blocks:[
+      {id:uid(),type:'sfx',who:'',mod:'',text:'WHUMP'}]}];
+  return p}
+
+/* ---------------- persistence ---------------- */
+let saveT;function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem('scriptwell.project',JSON.stringify(P))}catch(e){}},600)}
+function snapshot(){undoStack.push(JSON.stringify(P));if(undoStack.length>200)undoStack.shift()}
+function undo(){const s=undoStack.pop();if(!s){toast('Nothing to undo');return}P=JSON.parse(s);render();save()}
+function download(text,name,type='text/plain'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},3000)}
+const fname=()=>(P.title||'script').replace(/[^\w\-]+/g,'_').replace(/^_+|_+$/g,'')||'script';
+
+/* ---------------- text helpers ---------------- */
+const plain=t=>String(t||'').replace(/\\\*/g,'§').replace(/\*\*|[*_]/g,'').replace(/§/g,'*');
+const words=t=>{const s=plain(t).trim();return s?s.split(/\s+/).length:0};
+function rich(t){let o='',b=false,i=false,e=false;const s=String(t||'');
+  for(let k=0;k<s.length;k++){const c=s[k];
+    if(c==='\\'&&k+1<s.length){o+=esc(s[++k]);continue}
+    if(c==='*'&&s[k+1]==='*'){o+=b?'</b>':'<b>';b=!b;k++;continue}
+    if(c==='*'){o+=e?'</i></b>':'<b><i>';e=!e;continue}
+    if(c==='_'){o+=i?'</i>':'<i>';i=!i;continue}
+    o+=esc(c)}
+  if(e)o+='</i></b>';if(i)o+='</i>';if(b)o+='</b>';return o.replace(/\n/g,'<br>')}
+const balloonish=b=>b.type==='dialogue'||b.type==='caption';
+function pageWords(pg){let n=0;for(const pn of pg.panels)for(const b of pn.blocks)if(b.type!=='note'&&b.type!=='sfx')n+=words(b.text);return n}
+
+/* ---------------- editor's checks (full-script practice) ---------------- */
+const MOMENT=/\b(and then|then|afterwards|after that|before (he|she|they|it)|meanwhile|finally|next,)\b/i;
+function blockWarn(b){const w=words(b.text),out=[];
+  if(balloonish(b)&&w>25)out.push(`${w} words in one ${b.type==='caption'?'caption':'balloon'}. Aim for about 25 or fewer. Split it, or trim it.`);
+  if(b.type==='dialogue'&&!b.who.trim())out.push('Who is speaking?');
+  if(b.type==='dialogue'&&b.who.trim()&&!P.characters.some(c=>c.name.toUpperCase()===b.who.trim().toUpperCase()))out.push(`${b.who.toUpperCase()} isn't in your cast yet.`);
+  return out}
+function panelWarn(pn,pg){const out=[];const bs=pn.blocks.filter(balloonish),w=bs.reduce((a,b)=>a+words(b.text),0);
+  if(w>50)out.push(`${w} words in this panel. About 50 is the practical maximum before lettering crowds out the art.`);
+  if(bs.length>3)out.push(`${bs.length} balloons/captions in one panel. Three or fewer reads cleanly.`);
+  if(P.mode==='full'&&!pn.desc.trim())out.push('Describe what the artist draws. The artist can only draw what you tell them.');
+  if(MOMENT.test(pn.desc))out.push('A panel freezes one moment. Words like "then" usually mean two moments, so consider two panels.');
+  if(pn.desc.length>650)out.push('Long description. Keep what is essential to the story and let the artist design the rest.');
+  return out}
+function pageWarn(pg,idx){const out=[],n=pg.panels.length;
+  if(pg.splash&&n>1)out.push('Marked as a splash, but it has more than one panel.');
+  if(n>9)out.push(`${n} panels on one page is very dense. 4 to 6 is typical; more only for deliberate rhythm.`);
+  else if(n>6)out.push(`${n} panels. Fine for quick beats, but give big moments room.`);
+  if(P.pages.length>1&&(idx+1)%2===1&&idx<P.pages.length-1)out.push('Right-hand page: the last panel is what the reader sees before turning the page. End on a question, threat or surprise, and save the reveal for the next page.');
+  return out}
+
+/* ---------------- layout thumbnail ---------------- */
+function layoutSVG(pg,num){const W=46,H=68,m=3,g=2,ps=pg.panels;if(!ps.length)return'';
+  const rows=[];let row=[];
+  const big=s=>/Splash|Double|tier|Half|Large/.test(s||'');
+  for(const pn of ps){if(/Splash|Double/.test(pn.size)||/tier/.test(pn.size)){if(row.length){rows.push(row);row=[]}rows.push([pn]);continue}
+    row.push(pn);const cap=/Small|Inset/.test(pn.size)?3:2;if(row.length>=cap){rows.push(row);row=[]}}
+  if(row.length)rows.push(row);
+  const wts=rows.map(r=>/Splash|Double/.test(r[0].size)?3:/Half|Large/.test(r[0].size)?1.6:/tier/.test(r[0].size)?1.2:1);const tot=wts.reduce((a,b)=>a+b,0);
+  let y=m,s='',k=0;const ah=H-2*m-g*(rows.length-1);
+  rows.forEach((r,ri)=>{const rh=ah*wts[ri]/tot,aw=W-2*m-g*(r.length-1);let x=m;r.forEach(pn=>{const w=aw/r.length;k++;
+    s+=`<rect x="${x}" y="${y}" width="${w}" height="${rh}" fill="#fff" stroke="#1b1b1b" stroke-width=".8"/><text x="${x+w/2}" y="${y+rh/2+3}" font-size="7" text-anchor="middle" fill="#8a8780" font-family="Courier New">${k}</text>`;x+=w+g});y+=rh+g});
+  return`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-label="Page layout sketch"><rect width="${W}" height="${H}" fill="#eceae4" rx="2"/>${s}</svg>`}
+
+/* ---------------- rendering ---------------- */
+function render(){$('#ttl').value=P.title;$$('#modeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.mode===P.mode));$$('#viewSeg button').forEach(b=>b.classList.toggle('on',b.dataset.v===vmode));
+  $('#chkBtn').textContent='✎ Checks: '+(checks?'on':'off');
+  $('#castList').innerHTML=P.characters.map(c=>`<option value="${esc(c.name)}">`).join('');$('#locList').innerHTML=P.locations.map(l=>`<option value="${esc(l.name)}">`).join('');
+  renderNav();renderMain()}
+function renderNav(){let h=`<div class="h">Project</div>
+  <a data-go="title" class="${view==='title'?'on':''}">Title page</a>
+  <a data-go="cast" class="${view==='cast'?'on':''}">Characters <span class="c">${P.characters.length}</span></a>
+  <a data-go="places" class="${view==='places'?'on':''}">Locations <span class="c">${P.locations.length}</span></a>
+  <a data-go="guide" class="${view==='guide'?'on':''}">Method guide</a>
+  <div class="h">${P.mode==='marvel'?'Plot & pages':'Script'} · ${P.pages.length} pp</div>`;
+  P.pages.forEach((pg,i)=>{const w=pageWords(pg),warn=checks&&(pageWarn(pg,i).length&&pg.panels.length>6||pg.panels.some(pn=>panelWarn(pn,pg).length||pn.blocks.some(b=>blockWarn(b).length)));
+    h+=`<a data-pg="${pg.id}" class="${view==='script'?'':''}"><span>Page ${i+1}<span class="c"> ${(i+1)%2?'R':'L'}</span></span><span class="c ${warn?'w':''}">${pg.panels.length}p · ${w}w${warn?' ✎':''}</span></a>`});
+  h+=`<a data-act="addPage" style="color:var(--mute)">＋ Add page</a>`;
+  const tw=P.pages.reduce((a,p)=>a+pageWords(p),0);h+=`<div class="h">Totals</div><div class="hint" style="padding:0 8px">${tw} words of lettering<br>${P.pages.reduce((a,p)=>a+p.panels.length,0)} panels</div>`;
+  $('#nav').innerHTML=h}
+function renderMain(){const m=$('#main');
+  if(vmode==='read'){m.innerHTML=`<div class="paper pv">${previewHTML()}</div>`;return}
+  if(view==='title')m.innerHTML=titleHTML();else if(view==='cast')m.innerHTML=castHTML();else if(view==='places')m.innerHTML=placesHTML();else if(view==='guide')m.innerHTML=guideHTML();else m.innerHTML=scriptHTML();
+  $$('#main textarea').forEach(autosize)}
+function autosize(t){t.style.height='auto';t.style.height=(t.scrollHeight+2)+'px'}
+
+function titleHTML(){const f=(k,l,ph='',ta)=>`<div class="tp-row"><label>${l}</label>${ta?`<textarea rows="2" data-tp="${k}" placeholder="${ph}">${esc(P[k])}</textarea>`:`<input data-tp="${k}" value="${esc(P[k])}" placeholder="${ph}">`}</div>`;
+  return`<div class="paper titlepage"><h1 class="mono">${esc(P.title||'UNTITLED').toUpperCase()}</h1><div class="hint" style="text-align:center;margin-bottom:34px">${P.mode==='marvel'?'Marvel Method · plot first, dialogue over finished art':'Full Script · page, panel, description and dialogue'}</div>
+  ${f('title','Title')}${f('issue','Issue #')}${f('writer','Written by')}${f('artist','Pencils')}${f('inker','Inks')}${f('colorist','Colors')}${f('letterer','Letters')}${f('editor','Editor')}${f('draft','Draft')}${f('date','Date')}
+  ${f('logline','Logline','One sentence: who wants what, and what stands in the way.',1)}${f('synopsis','Synopsis','The whole story in a few paragraphs, beginning to end, including the ending.',1)}
+  <div class="hint" style="margin-top:24px">Page count: ${P.pages.length}. A standard single issue is usually about 20 to 22 story pages.</div></div>`}
+function castHTML(){const lines={};for(const pg of P.pages)for(const pn of pg.panels)for(const b of pn.blocks)if(b.type==='dialogue'&&b.who){const k=b.who.toUpperCase();lines[k]=lines[k]||{n:0,w:0,pages:new Set()};lines[k].n++;lines[k].w+=words(b.text);lines[k].pages.add(pg.id)}
+  let h=`<div class="paper"><h2 class="mono" style="margin-top:0">CHARACTERS</h2><p class="hint">Describe how each character looks (for the artist) and how they talk (for you). Names here autocomplete when you write dialogue.</p>`;
+  P.characters.forEach(c=>{const s=lines[c.name.toUpperCase()];h+=`<div class="card"><button class="mini del" data-delc="${c.id}" title="Remove">✕</button>
+    <div style="display:flex;gap:8px;align-items:center"><input type="color" value="${c.color||'#1b1b1b'}" data-c="${c.id}" data-k="color" style="width:28px;height:22px;padding:0;border:none"><input class="nm mono" value="${esc(c.name)}" data-c="${c.id}" data-k="name" placeholder="NAME"></div>
+    <div class="meta">${s?`${s.n} lines · ${s.w} words · on ${s.pages.size} page${s.pages.size>1?'s':''}`:'No lines yet'}</div>
+    <div class="tp-row"><label>Role</label><input value="${esc(c.role)}" data-c="${c.id}" data-k="role" placeholder="Lead, villain, mentor..."></div>
+    <div class="tp-row"><label>Look</label><textarea rows="2" data-c="${c.id}" data-k="look" placeholder="Age, build, face, costume, signature details. What the artist must keep consistent.">${esc(c.look)}</textarea></div>
+    <div class="tp-row"><label>Voice</label><textarea rows="2" data-c="${c.id}" data-k="voice" placeholder="How they speak: vocabulary, rhythm, catchwords, what they never say.">${esc(c.voice)}</textarea></div></div>`});
+  const unknown=Object.keys(lines).filter(k=>!P.characters.some(c=>c.name.toUpperCase()===k));
+  h+=`<button class="btn" data-act="addChar">＋ Add character</button>${unknown.length?` <span class="hint">Speakers not in the cast: ${unknown.map(u=>`<button class="mini" data-addname="${esc(u)}">＋ ${esc(u)}</button>`).join('')}</span>`:''}</div>`;return h}
+function placesHTML(){let h=`<div class="paper"><h2 class="mono" style="margin-top:0">LOCATIONS</h2><p class="hint">Describe each place once. Page settings autocomplete from this list, and the artist gets one reference for each place.</p>`;
+  P.locations.forEach(l=>{h+=`<div class="card"><button class="mini del" data-dell="${l.id}">✕</button><input class="nm mono" value="${esc(l.name)}" data-l="${l.id}" data-k="name" placeholder="PLACE NAME">
+    <div class="tp-row"><label>Description</label><textarea rows="3" data-l="${l.id}" data-k="desc" placeholder="Layout, lighting, mood, details that recur.">${esc(l.desc)}</textarea></div></div>`});
+  return h+`<button class="btn" data-act="addLoc">＋ Add location</button></div>`}
+
+function scriptHTML(){const mv=P.mode==='marvel';let h=`<div class="paper">`;
+  if(mv)h+=`<p class="hint" style="margin-top:0"><b>Marvel Method.</b> Step 1: write each page's <b>plot</b> and send it to the artist (Export → Marvel plot). Step 2: when pencils come back, add the panels <i>as drawn</i> and write the dialogue to fit the art.</p>`;
+  P.pages.forEach((pg,i)=>{h+=`<section class="pg" id="pg-${pg.id}" data-p="${pg.id}">
+    <div class="pghead"><span class="pgnum">PAGE ${numWord(i+1)}</span><span class="par">(${(i+1)%2?'right-hand':'left-hand'}${pg.splash?' · SPLASH':''})</span>
+      <input class="setting" list="locList" data-f="setting" value="${esc(pg.setting)}" placeholder="Setting. Time of day.">
+      <span class="tools"><button data-act="splash" title="Mark as splash page">${pg.splash?'☑':'☐'} Splash</button><button data-act="pgUp" title="Move page up">↑</button><button data-act="pgDown" title="Move page down">↓</button><button data-act="pgDup" title="Duplicate page">⧉</button><button data-act="pgCopy" title="Copy this page's dialogue for Inkwell">⇢ Inkwell</button><button data-act="pgDel" title="Delete page">✕</button></span></div>
+    <div class="lay" title="Rough layout from panel sizes">${layoutSVG(pg)}</div>`;
+    if(mv)h+=`<div class="plotlbl">PLOT</div><textarea class="plot" data-f="plot" rows="3" placeholder="What happens on this page: the story beats, the mood, the moment that must land. Suggest a panel count if it matters, and leave the staging to the artist.">${esc(pg.plot)}</textarea>
+      <div class="plotlbl" style="margin-top:14px">${pg.panels.length?'SCRIPT OVER ART':'SCRIPT OVER ART: add panels after the pencils come in'}</div>`;
+    let bn=0;
+    pg.panels.forEach((pn,j)=>{h+=`<div class="pn" id="pn-${pn.id}" data-n="${pn.id}"><div class="pnhead"><span class="pnlab">PANEL ${j+1}</span>
+        <select data-f="shot" title="Shot / camera">${SHOTS.map(s=>`<option value="${s}" ${pn.shot===s?'selected':''}>${s||'Shot…'}</option>`).join('')}</select>
+        <select data-f="size" title="Panel size">${SIZES.map(s=>`<option value="${s}" ${pn.size===s?'selected':''}>${s||'Size…'}</option>`).join('')}</select>
+        <span class="tools"><button data-act="pnUp">↑</button><button data-act="pnDown">↓</button><button data-act="pnDel">✕</button></span></div>
+      <textarea class="desc" data-f="desc" rows="2" placeholder="${mv?'As drawn: a short note of what the artist drew (optional).':'Panel description: what the artist draws. One moment, the key action, who is where.'}">${esc(pn.desc)}</textarea>`;
+      pn.blocks.forEach(b=>{const lbl=balloonish(b)?(++bn)+'.':'';const w=words(b.text),hot=balloonish(b)&&w>25;
+        h+=`<div class="bl t-${b.type}" data-b="${b.id}"><span class="bn">${lbl}</span>`;
+        if(b.type==='dialogue')h+=`<div class="whobox"><input class="who" list="castList" data-f="who" value="${esc(b.who)}" placeholder="NAME"><select data-f="mod" title="Balloon type">${MODS.map(m=>`<option value="${m}" ${b.mod===m?'selected':''}>${m?'('+m+')':'balloon…'}</option>`).join('')}</select></div>`;
+        else h+=`<span class="lab">${b.type==='caption'?'CAPTION':b.type==='sfx'?'SFX':'NOTE'}${b.type==='caption'?`<input class="who" list="castList" data-f="who" value="${esc(b.who)}" placeholder="(whose?)" style="font-weight:400;font-size:12px">`:''}</span>`;
+        h+=`<textarea data-f="text" rows="1" placeholder="${b.type==='dialogue'?'Dialogue. **bold**, _italic_, *emphasis*':b.type==='caption'?'Caption text':b.type==='sfx'?'SOUND':'Note to the artist, colorist or letterer'}">${esc(b.text)}</textarea>
+          <span class="wc ${hot?'hot':''}">${b.type==='note'?'':w+'w'}</span><button class="mini x" data-act="blDel" title="Delete">✕</button></div>`;
+        if(checks){const ws=blockWarn(b);if(ws.length)h+=`<div class="warns" data-wb="${b.id}">${ws.map(x=>`<div>${esc(x)}</div>`).join('')}</div>`;else h+=`<div class="warns" data-wb="${b.id}"></div>`}});
+      h+=`<div class="adds"><button class="mini" data-add="dialogue">＋ Dialogue</button><button class="mini" data-add="caption">＋ Caption</button><button class="mini" data-add="sfx">＋ SFX</button><button class="mini" data-add="note">＋ Note</button></div>`;
+      if(checks)h+=`<div class="warns" data-wn="${pn.id}">${panelWarn(pn,pg).map(x=>`<div>${esc(x)}</div>`).join('')}</div>`;
+      h+=`</div>`});
+    h+=`<div class="addpn"><button class="btn" data-act="addPanel">＋ Panel</button>${i===P.pages.length-1?'<button class="btn" data-act="addPage">＋ Page</button>':''}</div>`;
+    if(checks){const pw=pageWarn(pg,i);if(pw.length)h+=`<div class="pgwarn">${pw.map(x=>`<div>✎ ${esc(x)}</div>`).join('')}</div>`}
+    h+=`</section>`});
+  h+=`<p class="hint" style="margin-top:40px">Keys: <b>Enter</b> in dialogue adds the next line for the other speaker · <b>Shift+Enter</b> for a new line in the same balloon · <b>Ctrl+Enter</b> adds a new panel · <b>Ctrl+Shift+Enter</b> adds a new page · <b>Ctrl+B / Ctrl+I</b> bold or italic selected words.</p></div>`;
+  return h}
+
+function guideHTML(){return`<div class="paper guide"><h2 style="margin-top:0">FULL SCRIPT</h2>
+  <p>The writer breaks the story down page by page and panel by panel, describes what the artist should draw, and writes every caption, balloon and sound effect before any art exists. It gives the writer the most control over pacing and words. Dennis O'Neil was a champion of this method.</p>
+  <ul><li><b>One panel, one moment.</b> A panel is a frozen instant. If your description needs "then," you probably need another panel.</li>
+  <li><b>Describe what can be drawn.</b> Thoughts, smells and backstory can't be drawn. Give the artist the action, the acting, who is where, and anything the story needs later.</li>
+  <li><b>Keep words lean.</b> About 25 words per balloon and about 50 per panel. The more words, the less room for art.</li>
+  <li><b>Mind the page turn.</b> Odd-numbered pages sit on the right. End them on a hook, and put the big reveal at the top of the next (left-hand) page.</li>
+  <li><b>Pick panel counts with purpose.</b> About 4 to 6 panels per page is typical. Use fewer, bigger panels for spectacle and more, smaller panels for quick beats or tension.</li>
+  <li><b>Number your balloons.</b> The letterer places them in order, so the order of speakers in a panel matters. The first speaker usually sits on the left.</li></ul>
+  <h2>MARVEL METHOD (PLOT FIRST)</h2>
+  <p>The writer writes a plot. The artist breaks it into pages and panels and draws it, and then the writer scripts the words to fit the finished art. This is how O'Neil and Neal Adams made one of their Batman stories: O'Neil gave Adams a skeleton of a plot, Adams drew the pages, and O'Neil added the words afterward. The method trusts the artist with pacing and staging.</p>
+  <ul><li><b>Step 1, the plot:</b> In Marvel Method mode, write each page's plot. Include the beats, the emotional turns, and any moment that has to land. Export it with <b>Export → Marvel plot</b>.</li>
+  <li><b>Step 2, script over art:</b> When pencils arrive, add the panels as drawn, then write captions and dialogue that work <i>with</i> the pictures. Don't repeat what the art already shows.</li>
+  <li><b>Collaborate:</b> Tell the artist what matters most and where they're free to invent.</li></ul>
+  <h2>LETTERING MARKS</h2><p><code>(OFF)</code> speaker is off-panel · <code>(WHISPER)</code> dashed balloon · <code>(THOUGHT)</code> thought balloon · <code>(BURST)</code> shout · <code>(ELECTRIC)</code>/<code>(RADIO)</code> phone, TV or radio · <code>(CONT'D)</code> same speaker continues. Emphasis: <code>*word*</code> bold italic, <code>**word**</code> bold, <code>_word_</code> italic. These carry into Inkwell.</p></div>`}
+
+function previewHTML(){const mv=P.mode==='marvel';const meta=[P.writer&&'Written by '+P.writer,P.artist&&'Pencils by '+P.artist,P.inker&&'Inks by '+P.inker,P.colorist&&'Colors by '+P.colorist,P.letterer&&'Letters by '+P.letterer].filter(Boolean);
+  let h=`<div class="tp"><h1>${esc((P.title||'UNTITLED').toUpperCase())}${P.issue?' #'+esc(P.issue):''}</h1><div class="meta">${meta.map(esc).join(' · ')}</div><div class="meta">${mv?'Plot':'Full script'} · Draft ${esc(P.draft)} · ${esc(P.date)}</div>${P.logline?`<p><i>${esc(P.logline)}</i></p>`:''}</div>`;
+  P.pages.forEach((pg,i)=>{h+=`<div class="pp ${i?'pagebreak-soft':''}"><div class="ph">PAGE ${numWord(i+1)}${pg.splash?' (SPLASH)':''}</div>${pg.setting?`<div>${esc(pg.setting.toUpperCase())}</div>`:''}`;
+    if(mv&&pg.plot)h+=`<div class="pl">PLOT</div><div class="plotp">${esc(pg.plot)}</div>`;
+    let bn=0;pg.panels.forEach((pn,j)=>{h+=`<div class="pl">PANEL ${j+1}${pn.shot||pn.size?` <span style="font-weight:400">(${[pn.shot,pn.size].filter(Boolean).join(', ')})</span>`:''}</div>${pn.desc?`<div class="pd">${esc(pn.desc)}</div>`:''}`;
+      pn.blocks.forEach(b=>{const n=balloonish(b)?(++bn)+'. ':'';
+        if(b.type==='dialogue')h+=`<div class="pb">${n}<span class="who">${esc((b.who||'?').toUpperCase())}${b.mod?' ('+esc(b.mod)+')':''}:</span> ${rich(b.text)}</div>`;
+        else if(b.type==='caption')h+=`<div class="pb">${n}<span class="who">CAPTION${b.who?' ('+esc(b.who.toUpperCase())+')':''}:</span> ${rich(b.text)}</div>`;
+        else if(b.type==='sfx')h+=`<div class="pb"><span class="who">SFX:</span> ${esc(b.text.toUpperCase())}</div>`;
+        else h+=`<div class="pb"><i>NOTE: ${esc(b.text)}</i></div>`})});
+    h+=`</div>`});
+  return h}
+
+/* ---------------- text exports ---------------- */
+function scriptText(plotOnly){const L=[];const mv=P.mode==='marvel';
+  L.push((P.title||'UNTITLED').toUpperCase()+(P.issue?' #'+P.issue:''));
+  [['Written by',P.writer],['Pencils',P.artist],['Inks',P.inker],['Colors',P.colorist],['Letters',P.letterer],['Editor',P.editor]].forEach(([k,v])=>v&&L.push(k+': '+v));
+  L.push((plotOnly?'PLOT':mv?'PLOT + SCRIPT':'FULL SCRIPT')+' · Draft '+P.draft+' · '+P.date,'');
+  if(P.logline)L.push('LOGLINE: '+P.logline,'');if(plotOnly&&P.synopsis)L.push('SYNOPSIS:',P.synopsis,'');
+  if(plotOnly&&P.characters.length){L.push('CHARACTERS:');P.characters.forEach(c=>L.push(`  ${c.name.toUpperCase()}${c.role?' ('+c.role+')':''}: ${c.look||''}`));L.push('')}
+  if(plotOnly&&P.locations.length){L.push('LOCATIONS:');P.locations.forEach(l=>L.push(`  ${l.name.toUpperCase()}: ${l.desc||''}`));L.push('')}
+  P.pages.forEach((pg,i)=>{L.push('',`PAGE ${numWord(i+1)}${pg.splash?' (SPLASH)':''}  (${(i+1)%2?'right':'left'}-hand page)`);if(pg.setting)L.push(pg.setting.toUpperCase());
+    if(pg.plot&&(mv||plotOnly))L.push('',pg.plot);
+    if(plotOnly)return;
+    let bn=0;pg.panels.forEach((pn,j)=>{L.push('',`PANEL ${j+1}${pn.shot||pn.size?' ('+[pn.shot,pn.size].filter(Boolean).join(', ')+')':''}`);if(pn.desc)L.push(pn.desc);L.push('');
+      pn.blocks.forEach(b=>{const n=balloonish(b)?(++bn)+'. ':'    ';
+        if(b.type==='dialogue')L.push(`  ${n}${(b.who||'?').toUpperCase()}${b.mod?' ('+b.mod+')':''}: ${b.text}`);
+        else if(b.type==='caption')L.push(`  ${n}CAPTION${b.who?' ('+b.who.toUpperCase()+')':''}: ${b.text}`);
+        else if(b.type==='sfx')L.push(`      SFX: ${b.text.toUpperCase()}`);else L.push(`      NOTE: ${b.text}`)})})});
+  return L.join('\n')}
+function inkwellPage(pg){return pg.panels.flatMap(pn=>pn.blocks.filter(balloonish).map(b=>(b.type==='caption'?'CAPTION':(b.who||'?').toUpperCase())+': '+b.text.replace(/\n/g,' '))).join('\n')}
+function inkwellText(){return P.pages.map((pg,i)=>`=== PAGE ${i+1} ===\n${inkwellPage(pg)}`).join('\n\n')}
+function doPrint(){$('#printArea').innerHTML=`<div class="pv">${previewHTML()}</div>`;window.print()}
+
+/* ---------------- lookup helpers ---------------- */
+const pgOf=id=>P.pages.find(p=>p.id===id);
+function ctx(el){const pe=el.closest('[data-p]'),ne=el.closest('[data-n]'),be=el.closest('[data-b]');const pg=pe&&pgOf(pe.dataset.p);const pn=pg&&ne&&pg.panels.find(x=>x.id===ne.dataset.n);const b=pn&&be&&pn.blocks.find(x=>x.id===be.dataset.b);return{pg,pn,b}}
+function focusSoon(sel){setTimeout(()=>{const e=$(sel);if(e){e.focus();if(e.setSelectionRange&&e.value!==undefined)e.setSelectionRange(e.value.length,e.value.length);e.scrollIntoView({block:'nearest'})}},20)}
+function otherSpeaker(pn,b){const ds=pn.blocks.filter(x=>x.type==='dialogue'&&x.who);const cur=(b&&b.who)||'';const names=[...new Set(ds.map(x=>x.who.toUpperCase()))];
+  const o=names.find(n=>n!==cur.toUpperCase());if(o)return o;
+  const all=[];for(const pg of P.pages)for(const p of pg.panels)for(const x of p.blocks)if(x.type==='dialogue'&&x.who)all.push(x.who.toUpperCase());
+  for(let k=all.length-1;k>=0;k--)if(all[k]!==cur.toUpperCase())return all[k];return''}
+function addBlock(pn,type,after,who){snapshot();const b=newBlock(type,who);const i=after?pn.blocks.indexOf(after)+1:pn.blocks.length;pn.blocks.splice(i,0,b);save();render();
+  focusSoon(`[data-b="${b.id}"] ${type==='dialogue'&&!who?'input.who':'textarea'}`);return b}
+function addPanel(pg,after){snapshot();const n=newPanel();const i=after?pg.panels.indexOf(after)+1:pg.panels.length;pg.panels.splice(i,0,n);save();render();focusSoon(`[data-n="${n.id}"] textarea.desc`);return n}
+function addPage(after){snapshot();const p=newPage();const i=after?P.pages.indexOf(after)+1:P.pages.length;P.pages.splice(i,0,p);view='script';save();render();
+  focusSoon(P.mode==='marvel'?`[data-p="${p.id}"] textarea.plot`:`[data-n="${p.panels[0].id}"] textarea.desc`);setTimeout(()=>{const e=$('#pg-'+p.id);if(e)e.scrollIntoView({behavior:'smooth',block:'start'})},40)}
+function move(arr,i,d){const j=i+d;if(j<0||j>=arr.length)return false;[arr[i],arr[j]]=[arr[j],arr[i]];return true}
+
+/* ---------------- events ---------------- */
+let typingSnap=null;
+document.addEventListener('input',e=>{const t=e.target;
+  if(t.id==='ttl'){P.title=t.value;save();return}
+  if(t.dataset.tp){P[t.dataset.tp]=t.value;if(t.tagName==='TEXTAREA')autosize(t);save();return}
+  if(t.dataset.c){const c=P.characters.find(x=>x.id===t.dataset.c);c[t.dataset.k]=t.dataset.k==='name'?t.value.toUpperCase():t.value;if(t.dataset.k==='name'){const s=t.selectionStart;t.value=c.name;t.setSelectionRange(s,s)}if(t.tagName==='TEXTAREA')autosize(t);save();return}
+  if(t.dataset.l){const l=P.locations.find(x=>x.id===t.dataset.l);l[t.dataset.k]=t.value;if(t.tagName==='TEXTAREA')autosize(t);save();return}
+  const f=t.dataset.f;if(!f)return;const{pg,pn,b}=ctx(t);if(!pg)return;
+  if(typingSnap!==t){snapshot();typingSnap=t}
+  if(b)b[f]=f==='who'?t.value.toUpperCase():t.value;else if(pn)pn[f]=t.value;else pg[f]=t.value;
+  if(f==='who'&&b){const s=t.selectionStart;t.value=b.who;t.setSelectionRange(s,s)}
+  if(t.tagName==='TEXTAREA')autosize(t);
+  if(b){const row=t.closest('.bl'),wc=row&&row.querySelector('.wc');if(wc&&b.type!=='note'){const w=words(b.text);wc.textContent=w+'w';wc.classList.toggle('hot',balloonish(b)&&w>25)}
+    const wb=$(`[data-wb="${b.id}"]`);if(wb)wb.innerHTML=checks?blockWarn(b).map(x=>`<div>${esc(x)}</div>`).join(''):''}
+  if(pn){const wn=$(`[data-wn="${pn.id}"]`);if(wn)wn.innerHTML=checks?panelWarn(pn,pg).map(x=>`<div>${esc(x)}</div>`).join(''):''}
+  if(f==='size'||f==='shot'){const lay=t.closest('.pg').querySelector('.lay');if(lay)lay.innerHTML=layoutSVG(pg)}
+  clearTimeout(renderNav.t);renderNav.t=setTimeout(renderNav,400);save()});
+document.addEventListener('change',e=>{const t=e.target;if(t.dataset.f==='who'){const{b}=ctx(t);if(b&&b.who&&!P.characters.some(c=>c.name===b.who.trim())){snapshot();P.characters.push({id:uid(),name:b.who.trim(),role:'',look:'',voice:'',color:'#1b1b1b'});save();render();toast(b.who+' added to your cast')}}
+  if(t.dataset.c&&t.type==='color'){save()}typingSnap=null});
+document.addEventListener('focusout',()=>{typingSnap=null});
+document.addEventListener('keydown',e=>{const t=e.target,mod=e.ctrlKey||e.metaKey;
+  if(mod&&e.key.toLowerCase()==='s'){e.preventDefault();saveFile();return}
+  if(mod&&e.key.toLowerCase()==='z'&&!(t.tagName==='TEXTAREA'||t.tagName==='INPUT')){e.preventDefault();undo();return}
+  if(!t.dataset||!t.dataset.f||vmode!=='write')return;const{pg,pn,b}=ctx(t);if(!pg)return;
+  if(mod&&(e.key==='b'||e.key==='i'||e.key==='e')&&t.tagName==='TEXTAREA'&&t.dataset.f==='text'){e.preventDefault();const mk=e.key==='b'?'**':e.key==='i'?'_':'*';const a=t.selectionStart,z=t.selectionEnd,v=t.value;
+    let nv,na,nz;if(v.slice(a-mk.length,a)===mk&&v.slice(z,z+mk.length)===mk){nv=v.slice(0,a-mk.length)+v.slice(a,z)+v.slice(z+mk.length);na=a-mk.length;nz=z-mk.length}else{nv=v.slice(0,a)+mk+v.slice(a,z)+mk+v.slice(z);na=a+mk.length;nz=z+mk.length}
+    t.value=nv;t.setSelectionRange(na,nz);t.dispatchEvent(new Event('input',{bubbles:true}));return}
+  if(e.key==='Enter'&&mod&&e.shiftKey){e.preventDefault();addPage(pg);return}
+  if(e.key==='Enter'&&mod){e.preventDefault();addPanel(pg,pn||null);return}
+  if(e.key==='Enter'&&!e.shiftKey){
+    if(b&&t.dataset.f==='text'&&(b.type==='dialogue'||b.type==='caption')){e.preventDefault();if(b.type==='dialogue')addBlock(pn,'dialogue',b,otherSpeaker(pn,b)||'');else addBlock(pn,'caption',b);return}
+    if(b&&t.dataset.f==='who'){e.preventDefault();focusSoon(`[data-b="${b.id}"] textarea`);return}
+    if(pn&&t.dataset.f==='desc'){e.preventDefault();if(pn.blocks.length)focusSoon(`[data-b="${pn.blocks[0].id}"] ${pn.blocks[0].type==='dialogue'&&!pn.blocks[0].who?'input.who':'textarea'}`);else addBlock(pn,'dialogue',null,'');return}
+    if(t.dataset.f==='setting'){e.preventDefault();focusSoon(P.mode==='marvel'?`[data-p="${pg.id}"] textarea.plot`:`[data-p="${pg.id}"] textarea.desc`);return}}
+  if(e.key==='Backspace'&&b&&t.value===''&&t.dataset.f==='text'){e.preventDefault();snapshot();const i=pn.blocks.indexOf(b);pn.blocks.splice(i,1);save();render();const prev=pn.blocks[i-1];focusSoon(prev?`[data-b="${prev.id}"] textarea`:`[data-n="${pn.id}"] textarea.desc`)}});
+document.addEventListener('click',e=>{const t=e.target.closest('[data-act],[data-add],[data-go],[data-pg],[data-delc],[data-dell],[data-addname],[data-mode],[data-v],[data-exp]');
+  if(!t){if(!e.target.closest('#expMenu'))$('#expMenu').classList.remove('open');return}
+  if(t.dataset.mode){if(P.mode!==t.dataset.mode){snapshot();P.mode=t.dataset.mode;save();render();toast(P.mode==='marvel'?'Marvel Method: write each page\'s plot first, then the dialogue over the art.':'Full Script: page, panel, description and dialogue.')}return}
+  if(t.dataset.v){vmode=t.dataset.v;render();return}
+  if(t.dataset.exp){$('#expMenu').classList.remove('open');const k=t.dataset.exp;
+    if(k==='print')doPrint();else if(k==='txt')download(scriptText(false),fname()+'_script.txt');else if(k==='plot')download(scriptText(true),fname()+'_plot.txt');
+    else if(k==='inkwell'){download(inkwellText(),fname()+'_inkwell_dialogue.txt');toast('In Inkwell, paste each page\'s lines into that page\'s Dialogue box')}return}
+  if(t.dataset.go){view=t.dataset.go;vmode='write';render();window.scrollTo(0,0);return}
+  if(t.dataset.pg){view='script';vmode='write';render();setTimeout(()=>{const el=$('#pg-'+t.dataset.pg);if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},20);return}
+  if(t.dataset.delc){if(!ask('Remove this character from the cast? Their dialogue stays in the script.'))return;snapshot();P.characters=P.characters.filter(c=>c.id!==t.dataset.delc);save();render();return}
+  if(t.dataset.dell){snapshot();P.locations=P.locations.filter(c=>c.id!==t.dataset.dell);save();render();return}
+  if(t.dataset.addname){snapshot();P.characters.push({id:uid(),name:t.dataset.addname,role:'',look:'',voice:'',color:'#1b1b1b'});save();render();return}
+  const{pg,pn,b}=ctx(t);
+  if(t.dataset.add){addBlock(pn,t.dataset.add,null,t.dataset.add==='dialogue'?(otherSpeaker(pn,null)||''):'');return}
+  const a=t.dataset.act;
+  switch(a){
+    case 'addPage':addPage(pg||P.pages[P.pages.length-1]);break;
+    case 'addPanel':addPanel(pg);break;
+    case 'addChar':{snapshot();const c={id:uid(),name:'',role:'',look:'',voice:'',color:'#1b1b1b'};P.characters.push(c);save();render();focusSoon(`[data-c="${c.id}"][data-k="name"]`);break}
+    case 'addLoc':{snapshot();const l={id:uid(),name:'',desc:''};P.locations.push(l);save();render();focusSoon(`[data-l="${l.id}"][data-k="name"]`);break}
+    case 'splash':snapshot();pg.splash=!pg.splash;if(pg.splash&&pg.panels.length===1)pg.panels[0].size='Splash (full page)';save();render();break;
+    case 'pgUp':case 'pgDown':{const i=P.pages.indexOf(pg);snapshot();if(move(P.pages,i,a==='pgUp'?-1:1)){save();render();setTimeout(()=>$('#pg-'+pg.id).scrollIntoView({block:'center'}),20)}else undoStack.pop();break}
+    case 'pgDup':{snapshot();const c=JSON.parse(JSON.stringify(pg));c.id=uid();c.panels.forEach(pn2=>{pn2.id=uid();pn2.blocks.forEach(x=>x.id=uid())});P.pages.splice(P.pages.indexOf(pg)+1,0,c);save();render();break}
+    case 'pgDel':{if(P.pages.length<2){toast('A script needs at least one page');break}if(!ask('Delete this page and everything on it?'))break;snapshot();P.pages.splice(P.pages.indexOf(pg),1);save();render();toast('Page deleted (Undo brings it back)');break}
+    case 'pgCopy':{const txt=inkwellPage(pg);(navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast('Copied. Paste into this page\'s Dialogue box in Inkwell.')).catch(()=>{download(txt,fname()+`_page${P.pages.indexOf(pg)+1}_dialogue.txt`)});break}
+    case 'pnUp':case 'pnDown':{const i=pg.panels.indexOf(pn);snapshot();if(move(pg.panels,i,a==='pnUp'?-1:1)){save();render()}else undoStack.pop();break}
+    case 'pnDel':{if(pn.desc||pn.blocks.length){if(!ask('Delete this panel?'))break}snapshot();pg.panels.splice(pg.panels.indexOf(pn),1);save();render();break}
+    case 'blDel':snapshot();pn.blocks.splice(pn.blocks.indexOf(b),1);save();render();break;
+  }});
+$('#expBtn').onclick=e=>{e.stopPropagation();$('#expMenu').classList.toggle('open')};
+$('#chkBtn').onclick=()=>{checks=!checks;render()};
+$('#undoBtn').onclick=undo;
+$('#newBtn').onclick=()=>{if(!ask('Start a new script? Save this one first if you want to keep it.'))return;snapshot();P=blank();view='title';vmode='write';save();render()};
+function saveFile(){download(JSON.stringify(P,null,1),fname()+'.script.json','application/json');toast('Script file saved')}
+$('#saveBtn').onclick=saveFile;
+$('#openBtn').onclick=()=>$('#fileIn').click();
+$('#fileIn').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const p=JSON.parse(await f.text());if(!p.pages)throw 0;snapshot();P=Object.assign(blank(),p);view='script';vmode='write';save();render();toast('Opened '+f.name)}catch(err){toast('That is not a Scriptwell file')}};
+window.addEventListener('beforeprint',()=>{if(!$('#printArea').innerHTML)$('#printArea').innerHTML=`<div class="pv">${previewHTML()}</div>`});
+window.addEventListener('afterprint',()=>{$('#printArea').innerHTML=''});
+
+/* ---------------- start ---------------- */
+(function(){let p=null;try{p=JSON.parse(localStorage.getItem('scriptwell.project')||'null')}catch(e){}P=p&&p.pages?Object.assign(blank(),p):sample();render()})();
+</script>
+</body>
+</html>
