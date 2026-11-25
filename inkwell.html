@@ -237,6 +237,8 @@ const FORMATS={
   sunday:{name:'Sunday Strip',dim:'10.5×7 in',w:756,h:504,bleed:0,margin:16},
   webtoon:{name:'Webtoon (vertical scroll)',dim:'800 px wide',w:800,h:3840,bleed:0,margin:30,webtoon:true,digital:true},
   free:{name:'Freedraw canvas',dim:'any size · no panels',w:1600,h:1200,bleed:0,margin:0,digital:true},
+  tall7x11:{name:'7×11 Portrait',dim:'7×11 in',w:504,h:792,bleed:9,margin:27},
+  board:{name:'11×17 Art Board',dim:'11×17 in · 10×15 image area',w:792,h:1224,bleed:0,margin:36,marginY:72},
   square:{name:'Square Webcomic',dim:'7.5×7.5 in',w:540,h:540,bleed:0,margin:18},
 };
 const LAYOUTS=[
@@ -288,7 +290,7 @@ const cur=()=>project.pages[pageIdx];
 const fmt=()=>{const f=FORMATS[project.format];const w=project.cw||f.w,h=project.ch||f.h;if(!project.cw&&!project.ch&&!f.webtoon)return f;
   const dim=f.digital?`${Math.round(w)}×${Math.round(h)} px`+(f.webtoon?` · ${Math.ceil(h/(1280*w/800))} slices`:''):`${(w/72).toFixed(3).replace(/\.?0+$/,'')}×${(h/72).toFixed(3).replace(/\.?0+$/,'')} in (custom)`;return{...f,w,h,dim}};
 function pageSize(){const f=fmt();return{W:f.w+2*f.bleed,H:f.h+2*f.bleed}}
-function liveArea(){const f=fmt();const m=f.bleed+f.margin;return{x:m,y:m,w:f.w-2*f.margin,h:f.h-2*f.margin}}
+function liveArea(){const f=fmt();const mx=f.margin,my=f.marginY??f.margin;return{x:f.bleed+mx,y:f.bleed+my,w:f.w-2*mx,h:f.h-2*my}}
 
 function mkLayer(name,sketch,opacity=1){return{id:uid(),name,sketch:!!sketch,visible:true,locked:false,opacity,strokes:[]}}
 function newPage(layoutIdx){const p={id:uid(),stage:'script',notes:'',panels:[],layers:[mkLayer('Pencils',true,0.75),mkLayer('Inks',false,1)],letters:[],guides:[],ref:null};p.active=p.layers[1].id;applyLayout(p,LAYOUTS[layoutIdx]);return p}
@@ -615,7 +617,7 @@ function renderFrame(){
   if(settings.showLetters){letterPage=page;for(const L of page.letters)drawLetter(xF,L)}
   if(settings.showGuides){const f=fmt(),{W,H}=pageSize();xF.lineWidth=1/zoom;
     if(f.bleed){xF.setLineDash([6/zoom,4/zoom]);xF.strokeStyle='rgba(226,55,43,.85)';xF.strokeRect(f.bleed,f.bleed,f.w,f.h)}
-    const a=liveArea();xF.setLineDash([2/zoom,3/zoom]);xF.strokeStyle='rgba(58,141,224,.8)';xF.strokeRect(a.x,a.y,a.w,a.h);xF.setLineDash([]);
+    const a=liveArea();if(f.marginY!=null){xF.fillStyle='rgba(58,141,224,.85)';xF.font=`600 ${9/zoom}px system-ui`;xF.textAlign='left';xF.textBaseline='bottom';xF.fillText('IMAGE AREA 10 × 15 in',a.x,a.y-3/zoom)}xF.setLineDash([2/zoom,3/zoom]);xF.strokeStyle='rgba(58,141,224,.8)';xF.strokeRect(a.x,a.y,a.w,a.h);xF.setLineDash([]);
     if(f.webtoon){const sh=1280*W/800,off=pageIdx*H;xF.strokeStyle='rgba(16,170,150,.55)';xF.fillStyle='rgba(16,170,150,.85)';xF.font=`600 ${10/zoom}px system-ui`;xF.textAlign='right';xF.textBaseline='bottom';
       for(let m=Math.ceil(off/sh);m*sh<off+H;m++){const y=m*sh-off;if(y<=0)continue;xF.setLineDash([8/zoom,6/zoom]);xF.beginPath();xF.moveTo(0,y);xF.lineTo(W,y);xF.stroke();xF.setLineDash([]);xF.fillText(`slice ${m} ▲ · ▼ slice ${m+1}`,W-6/zoom,y-3/zoom)}}}
   if(settings.showRulers&&page.ruler)drawRuler(xF,page.ruler);
